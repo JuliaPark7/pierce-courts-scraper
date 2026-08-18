@@ -1,0 +1,26 @@
+[project]
+name = "example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Julia Park", email = "parkjul7@uw.edu" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "bs4>=0.0.2",
+    "datetime>=6.0",
+    "jupyterlab>=4.6.2",
+    "pandas>=3.0.5",
+    "path>=17.1.1",
+    "playwright>=1.62.0",
+    "requests>=2.34.2",
+    "urljoin>=1.0.0",
+]
+
+[project.scripts]
+example = "example:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
