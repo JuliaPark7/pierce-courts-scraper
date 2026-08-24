@@ -49,6 +49,7 @@ def scrape_inmate_details():
             with open(html_path, "r", encoding='utf-8', errors='ignore') as file:
                 html_content = file.read()
                 soup = BeautifulSoup(html_content, 'html.parser')
+
                 bookingID = soup.find('h1').text
                 # print(bookingID)
 
@@ -75,56 +76,95 @@ def scrape_inmate_details():
                 agency = agency_data[1].text
                 # print(inmate_name, booking_time, agency)
 
-
+                # create a dictionary to store the inmate's details
+                inmate_dict = {
+                    "bookingID": bookingID,
+                    "inmate_name": inmate_name,
+                    "booking_time": booking_time,
+                    "arresting agency": agency
+                }
+             
                 # grab the table with the charges in it and target each charge
 
                 charges = soup.find("table", {"cols": "9"})
-                if charges is None:
-                    print(f"Warning: no charges found in file")
-                    continue
 
-                # grab the row with the charges in it 
-                # need to grab more charges 
-                charge_rows = charges.find_all("tr")[1::2]
-                for charge_row in charge_rows:
-                    charge = charge_row.find_all("td")
-                    print(charge)
+                # create a list to hold this inmate's charges
+
+                charge_table = []
+
+                if charges:
+                    charge_idx = 1
+
+                    charge_rows = charges.find_all("tr")
+                    for row1, row2 in zip(charge_rows[1::3], charge_rows[2::3]):
+                        cells1 = row1.find_all("td")
+
+                        # ensure the row has enough <td> cells before grabbing by index
+                        # this is necessary because the IndexError: list index out of range
+                        # error occurs because table markup is rarely uniform across every row.
+                        # some rows in your HTML might be empty, contain header cells, use merged
+                        # cells (colspan) or serve as visual spacers with zero <td> elements.
+                        if len(cells1) >= 2:
+                            charge = cells1[1].get_text(strip=True)
+                            charging_agency = cells1[3].get_text(strip=True)
+                            jurisdiction = cells1[4].get_text(strip=True)
+        
+                            # print(f"charge: {charge} | agency: {charging_agency} | jurisdiction: {jurisdiction}")
+                        else: 
+                            # skips empty rows, header-only rows, or spacer rows
+                            continue 
+                            
+                        cells2 = row2.find_all("td")
+                        if len(cells1) >=2:
+                            cause = cells2[4]
+                            cause_number = cause.get_text(strip=True)
+                            case_link = cause.find("a")
+                            targetURL = "https://linxonline.co.pierce.wa.us"
+                            if case_link:
+                                href = case_link.get("href")
+                            else:
+                                href = None
+                            if href:
+                                full_url = urljoin(targetURL, case_link["href"])
+                                # print(full_url)
+                            else: 
+                                full_url = None 
+                           # print(f"cause_number: {cause_number} | full_url: {full_url}") 
+                        else: 
+                            # skips empty rows, header-only rows, or spacer rows
+                            continue 
                     
-                    # print(charge_data)
+                         # dynamically assign keys: charge1, charge2, charge3...
+                    
+                        inmate_dict[f"charge{charge_idx}_name"] = charge 
+                        inmate_dict[f"charge{charge_idx}_agency"] = charging_agency
+                        inmate_dict[f"charge{charge_idx}_cause_number"] = cause_number
+                        inmate_dict[f"charge{charge_idx}_jurisdiction"] = jurisdiction
+                        inmate_dict[f"charge{charge_idx}_full_URL"] = full_url
+                        charge_idx +=1
 
-                jurisdiction_row = charges.find_all("tr")[2]
-                jurisdiction_data = jurisdiction_row.find_all("td")
-                cause_number = jurisdiction_data[4].text
-                link_html = jurisdiction_data[4]
-                case_link = link_html.find("a")
-                targetURL = "https://linxonline.co.pierce.wa.us"
-                         #  print(case_link)
+            data.append(inmate_dict)
+            df = pd.DataFrame(data)
+            df.to_csv('output.csv', index=False)
+    print("CSV done!")
+    
+                        
                
-                if case_link is not None:
-                    href = case_link.get("href")
-                else:
-                    href = None
-           
-                if href:
-                    full_url = urljoin(targetURL, case_link["href"])
-                    # print(full_url)
-                else: 
-                    full_url = None
-
+    """ 
                 scraped_details = {
                     "bookingID": bookingID,
                     "inmate_name": inmate_name,
                     "booking_time": booking_time,
                     "agency": agency,
-                    # "charge": charge,
+                    "charge": charge,
+                    "charging_agency": charging_agency,
+                    "jurisdiction": jurisdiction,
                     "cause_number": cause_number,
                     "full_url": full_url
                       }
+        """
                     
-                data.append(scraped_details)
-                df = pd.DataFrame(data)
-                df.to_csv('output.csv', index=False)
-    print("CSV done!")
+                
 
                 # turn that info into a DataFrame      
 
