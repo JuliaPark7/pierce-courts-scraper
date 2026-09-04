@@ -14,7 +14,7 @@ import os
 URL = "https://linxonline.co.pierce.wa.us/linxweb/Booking/GetJailRoster.cfm"
 data_dir = Path("rosters")
 
-# a path to a folder called rosters. if it doesnt exist create it 
+# a path to a folder called rosters. if it doesn't exist create it 
 data_dir.mkdir(exist_ok=True)
 
 
@@ -23,14 +23,25 @@ data_dir.mkdir(exist_ok=True)
    # pass
 
 def scrape_inmate_details():
+
     data = []
+
+    # iterate through each inmate's individual HTML file in the rosters directory 
+    # and scrape what you need using BeautifulSoup
+
     for roster in data_dir.iterdir():
         # create Path object 
         if roster.is_file():
             html_path = Path(roster)
             with open(html_path, "r", encoding='utf-8', errors='ignore') as file:
+
+                # open and read the file 
                 html_content = file.read()
+
+                # get the HTML file ready for parsing 
                 soup = BeautifulSoup(html_content, 'html.parser')
+
+                # scrape the bookingID using the header tag h1, if it's there
 
                 bookingID = soup.find('h1')
                 if bookingID: 
@@ -77,12 +88,28 @@ def scrape_inmate_details():
                 # create a list to hold this inmate's charges
 
                 charge_table = []
+                all_charges = []
+
+                # this is tricky! We want to scrape each charge in the
+                # inmate's file, but not every inmate has the same number of
+                # charges, so we need to index them and tell the program to 
+                # grab as many charges as exist.
 
                 if charges:
                     charge_idx = 1
 
                     charge_rows = charges.find_all("tr")
+
+                    # the info for each charge is broken into pairs of consecutive rows, so we
+                    # need to grab two rows at a time
+
+                    # [1::3] means grab every third row, starting from row[1] is the first row 
+                    # [2::3] means grab every third row, starting from row[2]??
+
                     for row1, row2 in zip(charge_rows[1::3], charge_rows[2::3]):
+
+                        # grab stuff from the first row we want (the charge row)
+
                         cells1 = row1.find_all("td")
 
                         # ensure the row has enough <td> cells before grabbing by index
@@ -90,6 +117,7 @@ def scrape_inmate_details():
                         # error occurs because table markup is rarely uniform across every row.
                         # some rows in your HTML might be empty, contain header cells, use merged
                         # cells (colspan) or serve as visual spacers with zero <td> elements.
+
                         if len(cells1) >= 2:
                             charge = cells1[1].get_text(strip=True)
                             charging_agency = cells1[3].get_text(strip=True)
@@ -99,6 +127,9 @@ def scrape_inmate_details():
                         else: 
                             # skips empty rows, header-only rows, or spacer rows
                             continue 
+
+                        # now grab stuff from the second row we want (the cause number, link to the court
+                        # case, etc.)
                             
                         cells2 = row2.find_all("td")
                         if len(cells1) >=2:
@@ -121,25 +152,38 @@ def scrape_inmate_details():
                             continue 
                     
                          # dynamically assign keys: charge1, charge2, charge3...
+                        
+                        all_charges.append(charge)
+                        # print(all_charges)
+                        inmate_dict["all_charges"] = all_charges
                     
                         inmate_dict[f"charge{charge_idx}_name"] = charge 
                         inmate_dict[f"charge{charge_idx}_agency"] = charging_agency
+                       
                         inmate_dict[f"charge{charge_idx}_cause_number"] = cause_number
                         inmate_dict[f"charge{charge_idx}_jurisdiction"] = jurisdiction
                         inmate_dict[f"charge{charge_idx}_full_URL"] = full_url
+
                         charge_idx +=1
 
+                    
+                        
+
             data.append(inmate_dict)
+
             df = pd.DataFrame(data)
+    
             df.to_csv('output.csv', index=False)
 
     print("CSV done!")
+
+""" 
     for roster in data_dir.iterdir():
             if roster.is_file():
                 roster.unlink()
     print("all files deleted successfully!")
     
-                        
+"""   
 
    
         # grab booking ID, inmate name, booking date/time, 
@@ -163,7 +207,7 @@ def scrape_asterisks():
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(URL)
-        expect(page.get_by_text("Booked Less Than 72 Hours Ago")).to_be_visible()
+        expect(page.get_by_text("Booked Less Than")).to_be_visible()
         html = page.inner_html("body")
         soup = BeautifulSoup(html, "html.parser")
         table = soup.find_all("table")[-1]
