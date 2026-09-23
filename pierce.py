@@ -10,8 +10,32 @@ from pathlib import Path
 import os
 
 
-# landing page for the jail roster
-URL = "https://linxonline.co.pierce.wa.us/linxweb/Booking/GetJailRoster.cfm"
+def bypass_login():
+    # Create a requests Session object
+    session = requests.Session()
+
+    # set common browser headers to avoid simple bot detection
+    session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:153.0) Gecko/20100101 Firefox/153.0"
+    })
+
+    # add your authenticated cookie to the session
+    session.cookies.set("sessionid", "FBEFB90C-9769-1EC0-A9D75D27FD840E91")
+
+    # request the roster page thru the authenticated session
+    # landing page for the jail roster
+    
+    roster_url = "https://linxonline.co.pierce.wa.us/linxweb/Booking/GetJailRoster.cfm"
+    URL = session.get(roster_url)
+
+    if URL.status_code == 200:
+        soup = BeautifulSoup(URL.text, "html.parser")
+        print("Successfully accessed roster page!")
+
+    else:
+        print(f"Failed to load page. Status code: {URL.status_code}")
+
+
 data_dir = Path("rosters")
 
 # a path to a folder called rosters. if it doesn't exist create it 
@@ -203,11 +227,42 @@ def scrape_inmate_details():
 
 
 def scrape_asterisks():
+    roster_url = "https://linxonline.co.pierce.wa.us/linxweb/Booking/GetJailRoster.cfm"
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto(URL)
-        expect(page.get_by_text("Booked Less Than")).to_be_visible()
+
+        # launch a visible (non-headless) Chrome browser 
+
+        browser = p.chromium.launch(headless=False, slow_mo=500)
+        context = browser.new_context()
+        page = context.new_page()
+
+        # navigate to Login page 
+        print("Opening login page ...")
+        page.goto("https://linxonline.co.pierce.wa.us/linxweb/Account/Logon.cfm?ActiveTab=Main")
+
+
+        # pause script and let you perform manual 2FA login
+        print("\n" + "="*50)
+        print("ACTION REQUIRED: Please login manually in the browser window.")
+        print("Perform your 2FA verification.")
+        print("Waiting for you to reach the main roster page...")
+        print("="*50 + "\n")
+
+        # Playwright will pause and wait until it detects an element that is 
+        # only present after a successful login (e.g. table, logout button, header)
+    
+
+        page.wait_for_selector("text=Booked Less Than", timeout=120000) # 2 minute timeout for manual login
+
+        print("Login detected! Script taking over ...")
+
+        # Save the cookies so you can reuse them next time w/o logging in 
+        storage_state = context.storage_state(path="auth_state.json")
+        print("Saved authentication state to auth-state.json")
+
+        # extract and scrape data 
+        # page.goto(roster_url)
+       # expect(page.get_by_text("Booked Less Than")).to_be_visible()
         html = page.inner_html("body")
         soup = BeautifulSoup(html, "html.parser")
         table = soup.find_all("table")[-1]
@@ -219,7 +274,7 @@ def scrape_asterisks():
                 name = cells[1].text
                 booking_id = cells[2]
                 detail_url = urljoin(
-                URL,
+                roster_url,
                 booking_id.find("a").get("href")
                 )
                 booking_id = booking_id.text.strip()
@@ -249,5 +304,34 @@ def scrape_asterisks():
 
 
 if __name__ == "__main__":
+    bypass_login()
     scrape_asterisks()
     scrape_inmate_details()
+
+
+"""
+# Create a requests Session object
+    session = requests.Session()
+
+    # set common browser headers to avoid simple bot detection
+    session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:153.0) Gecko/20100101 Firefox/153.0"
+    })
+
+    # add your authenticated cookie to the session
+    session.cookies.set("sessionid", "00B3887F-9514-FA0E-3821F6011B7871FC")
+
+    # request the roster page thru the authenticated session
+    # landing page for the jail roster
+    
+    roster_url = "https://linxonline.co.pierce.wa.us/linxweb/Booking/GetJailRoster.cfm"
+    response = session.get(roster_url)
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "html.parser")
+        print("Successfully accessed roster page!")
+
+    else:
+        print(f"Failed to load page. Status code: {response.status_code}")
+
+"""
