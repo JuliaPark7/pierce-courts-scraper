@@ -18,10 +18,9 @@ jobs:
         with:
           enable-cache: true
           version: "latest"
-      - uses: actions/setup-python@v2
+     - uses: actions/setup-python@v2
         with:
           python-version: '3.9'
-          cache: 'uv'
       - run: uv sync
       - name: Run scraper
         run: uv run pierce.py
