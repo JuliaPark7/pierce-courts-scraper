@@ -31,4 +31,4 @@ jobs:
         run: |
           uv run playwright install --with-deps
       - name: Run scraper
-        run: uv run pierce.py
+        run: uv run pierce-no-login.py
