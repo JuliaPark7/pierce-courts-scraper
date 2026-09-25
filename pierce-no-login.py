@@ -186,7 +186,7 @@ def scrape_inmate_details():
 
 def scrape_asterisks():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(URL)
         expect(page.get_by_text("Booked Less Than")).to_be_visible()
