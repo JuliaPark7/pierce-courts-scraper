@@ -175,13 +175,14 @@ def scrape_inmate_details():
 
     print("CSV done!")
 
-""" 
+
+def delete_rosters():
     for roster in data_dir.iterdir():
             if roster.is_file():
                 roster.unlink()
     print("all files deleted successfully!")
     
-"""   
+ 
 
 
 def scrape_asterisks():
@@ -233,3 +234,4 @@ def scrape_asterisks():
 if __name__ == "__main__":
     scrape_asterisks()
     scrape_inmate_details()
+    delete_rosters()
