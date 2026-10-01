@@ -40,13 +40,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git commit -m "latest data"
       - name: Push
-        run: git push
-
-      - name: Add and commit
         run: |
-          git add .
-          git config user.name "Automated"
-          git config user.email "actions@users.noreply.github.com"
-          git commit -m "latest data"
-      - name: Push
-        run: git push
+          git pull origin main --rebase
+          git push origin main
+      
