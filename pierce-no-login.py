@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from pathlib import Path 
 import os
+import glob 
 
 
 # landing page for the jail roster
@@ -18,10 +19,6 @@ data_dir = Path("rosters")
 data_dir.mkdir(exist_ok=True)
 
 
-# def scrape_detail_page(html):
-  #  """Parse the HTML of an inmate detail page"""
-   # pass
-
 def scrape_inmate_details():
 
     data = []
@@ -31,7 +28,7 @@ def scrape_inmate_details():
 
     for roster in data_dir.iterdir():
         # create Path object 
-        if roster.is_file():
+        if str(roster).endswith("html"):
             html_path = Path(roster)
             with open(html_path, "r", encoding='utf-8', errors='ignore') as file:
 
@@ -55,7 +52,7 @@ def scrape_inmate_details():
                 # grab the column with the inmate's name
                 # if it doesn't exist for some reason, add an if statement
                 if details is None:
-                    print(f"Warning: no details found in file")
+                    print(f"Warning: no details found in file {bookingID}")
                     continue
 
                 # grab the row with the inmate's name and target the name 
@@ -178,7 +175,7 @@ def scrape_inmate_details():
 
 def delete_rosters():
     for roster in data_dir.iterdir():
-            if roster.is_file():
+            if str(roster).endswith(".html"):
                 roster.unlink()
     print("all files deleted successfully!")
     
